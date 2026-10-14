@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#090710">
+<title>DAIS AI ART — Artist Console</title>
+<style>
+:root{color-scheme:dark;--bg:#090710;--panel:#171020;--pink:#f05abf;--purple:#a875ff;--gold:#e6c75a;--text:#f8efff;--muted:#c0add4;--border:#49305c}
+*{box-sizing:border-box}body{margin:0;min-height:100vh;color:var(--text);background:radial-gradient(ellipse at top,#29103c 0%,transparent 48%),var(--bg);font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif}
+header{padding:24px 18px 20px;border-bottom:1px solid var(--border)}.wrap{width:min(900px,100%);margin:auto}.brand{font-weight:850;letter-spacing:3px;color:var(--pink);font-size:clamp(23px,5vw,32px)}.subtitle{color:var(--muted);font-size:11px;letter-spacing:2px;margin-top:5px}
+main{padding:18px}.notice{display:none;padding:13px 14px;margin-bottom:14px;border-radius:10px;background:#21152d;border:1px solid var(--purple);overflow-wrap:anywhere}.notice.show{display:block}.notice.error{border-color:#ff9bad;color:#ffd6df}.notice.success{border-color:var(--gold);color:#ffedab}
+.card{background:rgba(23,16,32,.96);border:1px solid var(--border);border-radius:16px;padding:17px;margin-bottom:16px}h2{font-size:16px;color:var(--gold);margin:0 0 12px;letter-spacing:.5px}
+label{display:block;color:var(--muted);font-size:13px;margin:12px 0 6px}input,textarea{display:block;width:100%;padding:12px;border-radius:9px;border:1px solid #604574;background:#0d0913;color:var(--text);font:inherit;min-height:44px}textarea{resize:vertical}input:focus,textarea:focus{outline:2px solid var(--purple);outline-offset:1px}
+button{border:0;border-radius:9px;padding:12px 15px;min-height:44px;background:linear-gradient(100deg,var(--pink),var(--purple));color:#16091c;font-weight:750;font-size:14px;cursor:pointer}button.secondary{background:#2b1c38;color:var(--text);border:1px solid #65457b}button:disabled{opacity:.55;cursor:wait}.actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}.actions button{flex:1 1 130px}.status,.help{color:var(--muted);font-size:13px;line-height:1.5;overflow-wrap:anywhere}.help{font-size:12px}.artwork{border-top:1px solid var(--border);padding:12px 0;overflow-wrap:anywhere}.gold{color:var(--gold)}footer{text-align:center;padding:20px 10px 28px;color:var(--muted);font-size:11px;letter-spacing:1px}
+</style>
+</head>
+<body>
+<header><div class="wrap"><div class="brand">DAIS AI ART</div><div class="subtitle">DIGITAL ARTIST CONSOLE · PRIVATE WORKSPACE</div></div></header>
+<main class="wrap">
+<div id="notice" class="notice" role="status" aria-live="polite"></div>
+<section class="card">
+<h2>01 / SUPABASE CONNECTION</h2>
+<label for="projectUrl">Supabase Project URL</label><input id="projectUrl" type="url" inputmode="url" autocomplete="url" placeholder="https://your-project-ref.supabase.co">
+<label for="publishableKey">Supabase Publishable Key</label><input id="publishableKey" type="password" autocomplete="off" placeholder="sb_publishable_…">
+<div class="actions"><button id="connectBtn" type="button">Connect to Supabase</button><button id="disconnectBtn" class="secondary" type="button">Disconnect</button></div>
+<p id="connectionStatus" class="status">Not connected.</p><p class="help">Use only your public publishable key. Never put a secret or service-role key in a browser app.</p>
+</section>
+<section class="card">
+<h2>02 / ARTIST ACCOUNT</h2><label for="accountEmail">Email address</label><input id="accountEmail" type="email" autocomplete="email" placeholder="you@example.com">
+<label for="accountPassword">Password</label><input id="accountPassword" type="password" autocomplete="current-password" placeholder="Your account password">
+<div class="actions"><button id="signInBtn" type="button">Sign in</button><button id="signUpBtn" class="secondary" type="button">Create account</button><button id="signOutBtn" class="secondary" type="button">Sign out</button></div><p id="authStatus" class="status">Not signed in.</p>
+</section>
+<section class="card">
+<h2>03 / ARTIST PROFILE</h2><label for="artistName">Artist name</label><input id="artistName" autocomplete="name" placeholder="Your artist name">
+<label for="artistEmail">Artist contact email</label><input id="artistEmail" type="email" placeholder="Contact email">
+<label for="artistCountry">Country</label><input id="artistCountry" autocomplete="country-name" placeholder="Your country">
+<button id="profileBtn" type="button" style="margin-top:14px">Create artist profile</button>
+<p class="help">Requires a signed-in account and the existing create_my_artist_profile database function.</p>
+</section>
+<section class="card">
+<h2>04 / UPLOAD AND REGISTER ARTWORK</h2><label for="artTitle">Artwork title</label><input id="artTitle" maxlength="200" placeholder="Title of your artwork">
+<label for="artDescription">Description</label><textarea id="artDescription" rows="3" maxlength="5000" placeholder="Describe your artwork"></textarea>
+<label for="artFile">Artwork image</label><input id="artFile" type="file" accept="image/*"><p class="help">Uses your existing private bucket named artwork-files. Image limit: 10 MB.</p>
+<button id="uploadBtn" type="button" style="margin-top:14px">Upload and register artwork</button>
+</section>
+<section class="card"><h2>05 / MY PORTFOLIO</h2><button id="refreshBtn" type="button">Refresh portfolio</button><div id="portfolio" class="status" style="margin-top:12px">Connect and sign in to load your portfolio.</div></section>
+<footer>DAIS AI ART · BLACK / PINK / PURPLE / GOLD</footer>
+</main>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+(function(){
+"use strict";
+var $=function(id){return document.getElementById(id);};
+var client=null,currentUser=null,noticeTimer=null;
+function notify(message,type){var box=$("notice");box.textContent=String(message||"Done.");box.className="notice show "+(type||"success");if(noticeTimer)window.clearTimeout(noticeTimer);noticeTimer=window.setTimeout(function(){box.className="notice";},8000);}
+function setText(id,value){$(id).textContent=value;}
+function requireClient(){if(!client)throw new Error("Connect to Supabase first.");return client;}
+function requireUser(){if(!currentUser)throw new Error("Please sign in first.");return currentUser;}
+async function run(buttonId,action){var button=$(buttonId);if(button.disabled)return;button.disabled=true;try{await action();}catch(error){notify(error&&error.message?error.message:"An unexpected error occurred.","error");}finally{button.disabled=false;}}
+function updateAuthStatus(){setText("authStatus",currentUser?"Signed in: "+(currentUser.email||"account"):"Not signed in.");}
+$("connectBtn").addEventListener("click",function(){run("connectBtn",async function(){
+if(!window.supabase||typeof window.supabase.createClient!=="function")throw new Error("Supabase library did not load. Check internet access and reload this page.");
+var url=$("projectUrl").value.trim().replace(/\/+$/,""),key=$("publishableKey").value.trim();
+if(!/^https:\/\/[a-zA-Z0-9-]+\.supabase\.co$/.test(url))throw new Error("Enter the full Supabase Project URL, like https://your-project-ref.supabase.co");
+if(!key)throw new Error("Enter your Supabase publishable key.");
+if(key.startsWith("sb_secret_")||key.toLowerCase().includes("service_role"))throw new Error("Do not use a secret or service-role key in this website. Use the publishable key.");
+var candidate=window.supabase.createClient(url,key);var session=await candidate.auth.getSession();if(session.error)throw session.error;
+client=candidate;currentUser=session.data.session?session.data.session.user:null;setText("connectionStatus","Supabase client initialized.");updateAuthStatus();notify("Supabase client initialized. Sign in to test protected features.");if(currentUser)await loadPortfolio();
+});});
+$("disconnectBtn").addEventListener("click",function(){client=null;currentUser=null;setText("connectionStatus","Disconnected from this page.");updateAuthStatus();setText("portfolio","Connect and sign in to load your portfolio.");notify("Disconnected from this page. Your account and database were not deleted.");});
+$("signInBtn").addEventListener("click",function(){run("signInBtn",async function(){requireClient();var email=$("accountEmail").value.trim(),password=$("accountPassword").value;if(!email||!password)throw new Error("Enter your email and password.");var r=await client.auth.signInWithPassword({email:email,password:password});if(r.error)throw r.error;currentUser=r.data.user;updateAuthStatus();notify("Sign-in successful.");await loadPortfolio();});});
+$("signUpBtn").addEventListener("click",function(){run("signUpBtn",async function(){requireClient();var email=$("accountEmail").value.trim(),password=$("accountPassword").value;if(!email)throw new Error("Enter an email address.");if(password.length<6)throw new Error("Use a password with at least 6 characters.");var r=await client.auth.signUp({email:email,password:password});if(r.error)throw r.error;if(r.data.session&&r.data.user){currentUser=r.data.user;updateAuthStatus();notify("Account created and signed in.");}else{notify("Sign-up submitted. Check your email if confirmation is enabled.");}});});
+$("signOutBtn").addEventListener("click",function(){run("signOutBtn",async function(){requireClient();var r=await client.auth.signOut();if(r.error)throw r.error;currentUser=null;updateAuthStatus();setText("portfolio","Sign in to load your portfolio.");notify("Signed out successfully.");});});
+$("profileBtn").addEventListener("click",function(){run("profileBtn",async function(){requireUser();var name=$("artistName").value.trim(),email=$("artistEmail").value.trim(),country=$("artistCountry").value.trim();if(!name||!email||!country)throw new Error("Complete artist name, contact email, and country.");var r=await client.rpc("create_my_artist_profile",{p_name:name,p_email:email,p_country:country});if(r.error)throw r.error;notify("Artist profile request succeeded. Returned ID: "+String(r.data));});});
+$("uploadBtn").addEventListener("click",function(){run("uploadBtn",async function(){var user=requireUser(),title=$("artTitle").value.trim(),description=$("artDescription").value.trim(),file=$("artFile").files&&$("artFile").files[0];if(!title)throw new Error("Enter an artwork title.");if(!file)throw new Error("Choose an artwork image.");if(!file.type||file.type.indexOf("image/")!==0)throw new Error("Choose a valid image file.");if(file.size>10*1024*1024)throw new Error("Image must be 10 MB or smaller.");var safeName=file.name.replace(/[^a-zA-Z0-9._-]/g,"_"),path=user.id+"/"+Date.now()+"_"+safeName;var up=await client.storage.from("artwork-files").upload(path,file,{upsert:false,contentType:file.type});if(up.error)throw up.error;var reg=await client.rpc("register_my_artwork",{p_title:title,p_description:description,p_file_url:path});if(reg.error){notify("Image uploaded, but registration failed: "+reg.error.message+". Uploaded path: "+path,"error");return;}notify("Artwork uploaded and registered. Reference: "+String(reg.data));$("artTitle").value="";$("artDescription").value="";$("artFile").value="";await loadPortfolio();});});
+async function loadPortfolio(){requireUser();setText("portfolio","Loading portfolio…");var r=await client.from("artworks").select("id,title,description,status,created_at,file_url").eq("owner_id",currentUser.id).order("created_at",{ascending:false});if(r.error)throw r.error;var area=$("portfolio");area.replaceChildren();if(!r.data||!r.data.length){area.textContent="No artwork registered for this account yet.";return;}r.data.forEach(function(art){var item=document.createElement("div");item.className="artwork";var title=document.createElement("div");title.className="gold";title.style.fontWeight="700";title.textContent=art.title||"Untitled artwork";item.appendChild(title);var status=document.createElement("p");status.className="status";status.textContent="Status: "+(art.status||"unknown");item.appendChild(status);if(art.description){var desc=document.createElement("p");desc.className="status";desc.textContent=art.description;item.appendChild(desc);}area.appendChild(item);});}
+$("refreshBtn").addEventListener("click",function(){run("refreshBtn",loadPortfolio);});
+if(!window.supabase||typeof window.supabase.createClient!=="function")notify("Supabase library has not loaded yet. Check internet access and reload this page.","error");
+})();
+</script>
+</body>
+</html>
