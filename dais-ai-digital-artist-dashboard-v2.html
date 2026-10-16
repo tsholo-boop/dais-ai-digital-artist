@@ -1,0 +1,296 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>DAIS AI Digital Artist</title>
+<style>
+:root{--bg:#0b0d12;--panel:#141923;--panel2:#1a2230;--line:#2a3445;--text:#f4f6fb;--muted:#a7b1c2;--gold:#d8b56d;--gold2:#f0d69a;--red:#ff8585;--green:#88d7ae}
+*{box-sizing:border-box}body{margin:0;background:radial-gradient(ellipse at top,#18202c 0,#0b0d12 55%);color:var(--text);font:15px/1.5 system-ui,-apple-system,Segoe UI,Roboto,sans-serif}
+.wrap{max-width:1100px;margin:auto;padding:20px 14px 50px}.top{display:flex;gap:14px;align-items:center;justify-content:space-between;flex-wrap:wrap;border-bottom:1px solid var(--line);padding:8px 0 20px;margin-bottom:20px}
+.brand{display:flex;gap:12px;align-items:center}.mark{width:46px;height:46px;border:1px solid var(--gold);border-radius:14px;display:grid;place-items:center;color:var(--gold2);font-weight:900;letter-spacing:1px}
+h1{font-size:clamp(22px,4vw,30px);margin:0;letter-spacing:.02em}.sub{color:var(--muted);font-size:13px;margin-top:2px}
+.pill{border:1px solid var(--line);padding:7px 11px;border-radius:99px;color:var(--muted);font-size:12px}
+.grid{display:grid;grid-template-columns:repeat(12,minmax(0,1fr));gap:15px}.card{grid-column:span 12;background:linear-gradient(145deg,var(--panel),#10151d);border:1px solid var(--line);border-radius:18px;padding:18px;box-shadow:0 12px 35px #0002}
+@media(min-width:800px){.half{grid-column:span 6}.third{grid-column:span 4}}
+h2{font-size:17px;margin:0 0 13px}h3{font-size:15px;margin:0 0 8px}p{margin:7px 0;color:var(--muted)}label{display:block;color:#dce2ed;font-size:13px;margin:12px 0 6px}
+input,textarea,select{width:100%;background:#0b1017;color:var(--text);border:1px solid #354154;border-radius:10px;padding:12px;font:inherit;outline:none}
+input:focus,textarea:focus,select:focus{border-color:var(--gold)}textarea{min-height:82px;resize:vertical}input[type=file]{padding:9px}
+.row{display:flex;gap:9px;flex-wrap:wrap;align-items:center}.row>*{flex:1}.row .fit{flex:0 0 auto}
+button{border:1px solid var(--gold);background:var(--gold);color:#17130b;font-weight:750;border-radius:10px;padding:11px 14px;font:inherit;cursor:pointer;min-height:42px}
+button.secondary{background:#18202b;color:var(--text);border-color:#39465a}button.ghost{background:transparent;color:var(--gold2);border-color:#75613d}button.danger{background:#2a171a;border-color:#6e343a;color:#ffd8d8}button:disabled{opacity:.45;cursor:not-allowed}
+.small{font-size:12px;color:var(--muted)}.status{padding:11px 13px;border:1px solid var(--line);border-radius:10px;background:#0b1017;color:var(--muted);white-space:pre-wrap;overflow-wrap:anywhere;margin-top:12px}.status.good{border-color:#315b49;color:var(--green)}.status.bad{border-color:#6e343a;color:#ffc0c0}
+.hide{display:none!important}.stats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:9px;margin-top:12px}.stat{background:#0b1017;border:1px solid var(--line);border-radius:12px;padding:12px}.stat b{display:block;font-size:22px;color:var(--gold2)}.stat span{font-size:11px;color:var(--muted)}
+.artgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px;margin-top:12px}.art{background:#0c1118;border:1px solid var(--line);border-radius:14px;padding:12px;min-width:0}.art img{width:100%;height:150px;object-fit:contain;background:#07090d;border-radius:9px;margin-bottom:10px}.art .meta{font-size:12px;color:var(--muted);overflow-wrap:anywhere}.art.selected{border-color:var(--gold);box-shadow:0 0 0 1px #d8b56d55}.notice{border-left:3px solid var(--gold);padding:8px 11px;background:#201d17;color:#e9d8ae;border-radius:0 8px 8px 0;font-size:12px;margin-top:12px}
+footer{margin-top:22px;color:var(--muted);font-size:12px;text-align:center}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <div class="brand"><div class="mark">DAIS</div><div><h1>AI Digital Artist</h1><div class="sub">Digital-asset registration & acquisition dashboard</div></div></div>
+    <div class="pill" id="connectionPill">Not connected</div>
+  </header>
+
+  <div class="grid">
+    <section class="card">
+      <h2>1. Connect your Supabase project</h2>
+      <p>Use your project URL and the public <b>anon/publishable key</b> only. Never enter a service-role or secret key here.</p>
+      <label for="projectUrl">Supabase project URL</label><input id="projectUrl" type="url" placeholder="https://your-project-id.supabase.co" autocomplete="url">
+      <label for="anonKey">Public anon / publishable key</label><input id="anonKey" type="password" placeholder="Paste the public client key">
+      <div class="row" style="margin-top:12px"><button id="connectBtn">Connect project</button><button class="secondary" id="forgetConfigBtn" type="button">Clear saved connection</button></div>
+      <div class="small" style="margin-top:8px">Connection settings are kept in this browser on this device. Use only your own device.</div>
+      <div id="connectionStatus" class="status">Not connected yet.</div>
+    </section>
+
+    <section class="card half">
+      <h2>2. Account access</h2>
+      <label for="email">Email</label><input id="email" type="email" placeholder="you@example.com" autocomplete="email">
+      <label for="password">Password</label><input id="password" type="password" placeholder="At least 6 characters" autocomplete="current-password">
+      <div class="row" style="margin-top:12px"><button id="signInBtn">Log in</button><button class="secondary" id="signUpBtn">Create account</button><button class="ghost" id="signOutBtn">Log out</button></div>
+      <div id="authStatus" class="status">Connect Supabase before signing in.</div>
+    </section>
+
+    <section class="card half">
+      <h2>3. Artist profile</h2>
+      <label for="artistName">Artist / display name</label><input id="artistName" type="text" placeholder="Your artist name">
+      <div class="row">
+        <div><label for="artistCountry">Country</label><input id="artistCountry" type="text" placeholder="South Africa"></div>
+        <div><label for="artistEmail">Contact email (optional)</label><input id="artistEmail" type="email" placeholder="Contact email"></div>
+      </div>
+      <button id="profileBtn" style="margin-top:12px">Create / check my artist profile</button>
+      <div id="profileStatus" class="status">Sign in first, then create or check your profile.</div>
+    </section>
+
+    <section class="card">
+      <h2>4. Register an artwork</h2>
+      <p>Fill in the details first. The image is uploaded to your private <code>artwork-files</code> bucket. The dashboard uses your existing <code>register_my_artwork</code> database function.</p>
+      <label for="artTitle">Artwork title *</label><input id="artTitle" type="text" maxlength="180" placeholder="Give this artwork a title">
+      <label for="artDescription">Description</label><textarea id="artDescription" maxlength="4000" placeholder="Medium, concept, size, edition details..."></textarea>
+      <div class="row">
+        <div><label for="askingPrice">Asking price *</label><input id="askingPrice" type="number" min="0.01" step="0.01" placeholder="e.g. 5000"></div>
+        <div><label for="currency">Currency</label><select id="currency"><option value="ZAR">ZAR — South African rand</option><option value="USD">USD — US dollar</option><option value="EUR">EUR — euro</option><option value="GBP">GBP — British pound</option></select></div>
+      </div>
+      <label for="payoutMethod">Preferred payout method *</label>
+      <select id="payoutMethod">
+        <option value="">Choose a payout preference</option>
+        <option value="bank_transfer">Bank transfer</option>
+        <option value="cardless_cash_withdrawal">Cardless cash withdrawal (only if a connected provider supports it)</option>
+        <option value="payment_provider_wallet">Payment-provider wallet</option>
+      </select>
+      <label for="artFile">Artwork image file *</label><input id="artFile" type="file" accept="image/*">
+      <div class="small">If the browser crashes when opening the file picker, do not keep repeating it in that browser. Try opening this HTML file in another browser, such as Firefox or a compatible full browser.</div>
+      <div class="row" style="margin-top:14px"><button id="registerBtn">Upload & register artwork</button><button class="secondary" id="clearFormBtn" type="button">Clear form</button></div>
+      <div class="notice">Price and payout preference are saved to the artwork record where your existing table policies allow it. A selected preference is not a payout order or guarantee of sale.</div>
+      <div id="registerStatus" class="status">Connect and log in before registering artwork.</div>
+    </section>
+
+    <section class="card">
+      <div class="row"><div><h2 style="margin-bottom:4px">5. My artworks</h2><p>Load your saved records, select a card, and inspect its current database status.</p></div><div class="fit"><button id="refreshBtn" class="secondary">Refresh artworks</button></div></div>
+      <div class="stats">
+        <div class="stat"><b id="countArt">0</b><span>ARTWORKS LOADED</span></div>
+        <div class="stat"><b id="countSelected">0</b><span>SELECTED</span></div>
+        <div class="stat"><b id="countPrice">—</b><span>ASKING PRICE TOTAL*</span></div>
+      </div>
+      <div class="small" style="margin-top:8px">*Total includes only records with a saved asking price and is not sales revenue.</div>
+      <div id="artworkList" class="artgrid"><div class="status">Sign in and tap Refresh artworks to load your records.</div></div>
+      <div id="selectedStatus" class="status">No artwork selected.</div>
+    </section>
+  </div>
+  <footer>DAIS AI Digital Artist · Secure-by-policy dashboard · No sale or payout is represented as guaranteed.</footer>
+</div>
+
+<script type="module">
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+
+const $ = (id) => document.getElementById(id);
+let client = null;
+let currentUser = null;
+let artworks = [];
+let selectedId = null;
+
+function status(id, message, kind='') {
+  const el = $(id); el.textContent = message; el.className = 'status' + (kind ? ' ' + kind : '');
+}
+function setPill(text) { $('connectionPill').textContent = text; }
+function requireClient() { if (!client) throw new Error('Connect your Supabase project first.'); return client; }
+function requireUser() { requireClient(); if (!currentUser) throw new Error('Please log in first.'); return currentUser; }
+function friendlyError(error) {
+  const msg = error?.message || String(error || 'Unknown error');
+  if (/create_my_artist_profile|register_my_artwork|function .* does not exist/i.test(msg)) {
+    return msg + '\nCheck that the expected Supabase RPC function exists with the matching name and parameters.';
+  }
+  if (/row-level security|permission denied|not allowed/i.test(msg)) {
+    return msg + '\nThis may be an RLS or Storage policy issue. Do not disable RLS; check the owner and private-bucket policies.';
+  }
+  return msg;
+}
+function configFromFields() {
+  const url = $('projectUrl').value.trim().replace(/\/+$/, '');
+  const key = $('anonKey').value.trim();
+  if (!/^https:\/\/[a-zA-Z0-9-]+\.supabase\.co$/.test(url)) throw new Error('Enter your full Supabase project URL, like https://your-project-id.supabase.co');
+  if (!key) throw new Error('Paste your public anon/publishable key.');
+  return {url,key};
+}
+async function connect() {
+  try {
+    const {url,key} = configFromFields();
+    client = createClient(url,key,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});
+    localStorage.setItem('dais_public_supabase_url',url);
+    localStorage.setItem('dais_public_supabase_key',key);
+    const {data,error} = await client.auth.getSession();
+    if (error) throw error;
+    currentUser = data.session?.user || null;
+    setPill('Connected');
+    status('connectionStatus','Supabase client initialized. '+(currentUser ? 'Existing session found.' : 'Now log in or create an account.'),'good');
+    status('authStatus',currentUser ? 'Logged in as '+currentUser.email : 'Connected. Log in or create an account.');
+    if (currentUser) await refreshArtworks(false);
+  } catch(e) { client=null; currentUser=null; setPill('Not connected'); status('connectionStatus',friendlyError(e),'bad'); }
+}
+$('connectBtn').addEventListener('click',connect);
+$('forgetConfigBtn').addEventListener('click',()=>{
+  localStorage.removeItem('dais_public_supabase_url'); localStorage.removeItem('dais_public_supabase_key');
+  $('projectUrl').value=''; $('anonKey').value=''; client=null; currentUser=null; artworks=[]; renderArtworks();
+  setPill('Not connected'); status('connectionStatus','Saved connection cleared from this browser.','good');
+});
+const savedUrl=localStorage.getItem('dais_public_supabase_url');
+const savedKey=localStorage.getItem('dais_public_supabase_key');
+if(savedUrl) $('projectUrl').value=savedUrl;
+if(savedKey) $('anonKey').value=savedKey;
+
+$('signUpBtn').addEventListener('click',async()=>{
+  try{
+    requireClient(); const email=$('email').value.trim(), password=$('password').value;
+    if(!email || password.length<6) throw new Error('Enter a valid email and a password with at least 6 characters.');
+    const {data,error}=await client.auth.signUp({email,password}); if(error) throw error;
+    currentUser=data.user && data.session ? data.user : null;
+    status('authStatus',data.session ? 'Account created and logged in as '+email : 'Signup request sent. Check your email for confirmation, then log in.','good');
+  }catch(e){status('authStatus',friendlyError(e),'bad');}
+});
+$('signInBtn').addEventListener('click',async()=>{
+  try{
+    requireClient(); const email=$('email').value.trim(), password=$('password').value;
+    if(!email || !password) throw new Error('Enter your email and password.');
+    const {data,error}=await client.auth.signInWithPassword({email,password}); if(error) throw error;
+    currentUser=data.user; status('authStatus','Logged in as '+(currentUser.email||email),'good');
+    await refreshArtworks(false);
+  }catch(e){status('authStatus',friendlyError(e),'bad');}
+});
+$('signOutBtn').addEventListener('click',async()=>{
+  try{requireClient(); const {error}=await client.auth.signOut(); if(error) throw error; currentUser=null; artworks=[]; selectedId=null; renderArtworks(); status('authStatus','Logged out.','good');}
+  catch(e){status('authStatus',friendlyError(e),'bad');}
+});
+client?.auth?.onAuthStateChange?.((_event,session)=>{currentUser=session?.user||null;});
+
+$('profileBtn').addEventListener('click',async()=>{
+  try{
+    requireUser();
+    const name=$('artistName').value.trim();
+    if(!name) throw new Error('Enter your artist/display name.');
+    const args={p_name:name,p_email:$('artistEmail').value.trim()||currentUser.email||null,p_country:$('artistCountry').value.trim()||null};
+    const {data,error}=await client.rpc('create_my_artist_profile',args); if(error) throw error;
+    status('profileStatus','Profile request succeeded. Returned result: '+JSON.stringify(data),'good');
+  }catch(e){status('profileStatus',friendlyError(e),'bad');}
+});
+
+$('registerBtn').addEventListener('click',async()=>{
+  const btn=$('registerBtn'); btn.disabled=true; btn.textContent='Working…';
+  try{
+    const user=requireUser();
+    const title=$('artTitle').value.trim();
+    const description=$('artDescription').value.trim();
+    const price=Number($('askingPrice').value);
+    const currency=$('currency').value;
+    const payoutMethod=$('payoutMethod').value;
+    const file=$('artFile').files?.[0];
+    if(!title) throw new Error('Enter an artwork title.');
+    if(!Number.isFinite(price)||price<=0) throw new Error('Enter an asking price greater than zero.');
+    if(!payoutMethod) throw new Error('Choose a preferred payout method.');
+    if(!file) throw new Error('Choose an artwork image file.');
+    if(!file.type.startsWith('image/')) throw new Error('Choose an image file.');
+    if(file.size>15*1024*1024) throw new Error('Image is larger than 15 MB. Choose a smaller image.');
+    status('registerStatus','Checking your artist profile…');
+    const profileName=$('artistName').value.trim() || (user.email ? user.email.split('@')[0] : 'DAIS Artist');
+    const {error:profileError}=await client.rpc('create_my_artist_profile',{
+      p_name:profileName,
+      p_email:$('artistEmail').value.trim()||user.email||null,
+      p_country:$('artistCountry').value.trim()||null
+    });
+    if(profileError) throw new Error('Could not check/create your artist profile: '+profileError.message);
+    status('registerStatus','Uploading image to your private Storage bucket…');
+    const safeName=file.name.replace(/[^a-zA-Z0-9._-]/g,'_');
+    const path=user.id+'/'+crypto.randomUUID()+'-'+safeName;
+    const {error:uploadError}=await client.storage.from('artwork-files').upload(path,file,{contentType:file.type,upsert:false});
+    if(uploadError) throw uploadError;
+    status('registerStatus','Image uploaded. Registering artwork record…');
+    const {data:artworkId,error:rpcError}=await client.rpc('register_my_artwork',{p_title:title,p_description:description||null,p_file_url:path});
+    if(rpcError) throw rpcError;
+    if(!artworkId) throw new Error('The registration function did not return an artwork ID.');
+    const {data:updated,error:updateError}=await client.from('artworks').update({
+      asking_price:price,
+      currency:currency,
+      payout_status:'pending',
+      metadata:{preferred_payout_method:payoutMethod,payout_preference_status:'preference_only'}
+    }).eq('id',artworkId).eq('owner_id',user.id).select('id').maybeSingle();
+    if(updateError) throw new Error('Artwork record was created (ID '+artworkId+'), but price/currency/payout preference could not be saved: '+updateError.message);
+    if(!updated) throw new Error('Artwork record was created (ID '+artworkId+'), but no owned row was returned when saving its details. Check the update RLS policy.');
+    status('registerStatus','Artwork registered successfully. ID: '+artworkId+'. Asking price, currency and payout preference saved in the artwork metadata. The payout preference is not a payment instruction and no payout has been initiated.','good');
+    $('artTitle').value=''; $('artDescription').value=''; $('askingPrice').value=''; $('payoutMethod').value=''; $('artFile').value='';
+    await refreshArtworks(false);
+  }catch(e){status('registerStatus',friendlyError(e),'bad');}
+  finally{btn.disabled=false;btn.textContent='Upload & register artwork';}
+});
+$('clearFormBtn').addEventListener('click',()=>{['artTitle','artDescription','askingPrice','artFile'].forEach(id=>$(id).value='');$('currency').value='ZAR';$('payoutMethod').value='';status('registerStatus','Form cleared. No database record was changed.');});
+
+async function refreshArtworks(showStatus=true){
+  try{
+    const user=requireUser();
+    if(showStatus) status('selectedStatus','Loading artworks…');
+    const {data,error}=await client.from('artworks').select('id,title,description,file_url,status,created_at,asking_price,currency,acquisition_status,payout_status,owner_id').eq('owner_id',user.id).order('created_at',{ascending:false}).limit(100);
+    if(error) throw error;
+    artworks=data||[];
+    renderArtworks();
+    if(showStatus) status('selectedStatus','Loaded '+artworks.length+' artwork record(s).','good');
+  }catch(e){if(showStatus) status('selectedStatus',friendlyError(e),'bad');}
+}
+$('refreshBtn').addEventListener('click',()=>refreshArtworks(true));
+function esc(s){return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+async function imageFor(path){
+  if(!path) return null;
+  if(/^https?:\/\//i.test(path)) return path;
+  try{
+    const {data,error}=await client.storage.from('artwork-files').createSignedUrl(path,300);
+    if(error) return null;
+    return data?.signedUrl||null;
+  }catch{return null;}
+}
+async function renderArtworks(){
+  $('countArt').textContent=artworks.length;
+  $('countSelected').textContent=selectedId && artworks.some(a=>a.id===selectedId)?'1':'0';
+  const total=artworks.reduce((sum,a)=>sum+(Number(a.asking_price)>0?Number(a.asking_price):0),0);
+  const currency=artworks.find(a=>a.currency)?.currency||'ZAR';
+  $('countPrice').textContent=total?total.toLocaleString(undefined,{style:'currency',currency,maximumFractionDigits:2}):'—';
+  const root=$('artworkList');
+  if(!artworks.length){root.innerHTML='<div class="status">No artwork records loaded yet. Register an artwork, then refresh.</div>';return;}
+  root.innerHTML='';
+  for(const a of artworks){
+    const card=document.createElement('article'); card.className='art'+(a.id===selectedId?' selected':'');
+    const img=await imageFor(a.file_url);
+    card.innerHTML=(img?'<img alt="Artwork preview" src="'+esc(img)+'">':'<div class="status">Private image preview unavailable</div>')+
+      '<h3>'+esc(a.title||'Untitled artwork')+'</h3>'+
+      '<div class="meta">ID: '+esc(a.id)+'</div>'+
+      '<p>'+esc(a.description||'No description')+'</p>'+
+      '<div class="meta">Asking price: '+(a.asking_price!=null?esc(a.currency||'ZAR')+' '+Number(a.asking_price).toLocaleString():'Not set')+'</div>'+
+      '<div class="meta">Status: '+esc(a.status||'unknown')+'</div>'+
+      '<div class="meta">Acquisition: '+esc(a.acquisition_status||'not set')+' · Payout: '+esc(a.payout_status||'not set')+'</div>'+
+      '<button class="secondary" style="width:100%;margin-top:10px" type="button">'+(a.id===selectedId?'Selected ✓':'Select artwork')+'</button>';
+    card.querySelector('button').addEventListener('click',()=>{
+      selectedId=a.id; renderArtworks();
+      status('selectedStatus','Selected artwork: '+(a.title||'Untitled')+'\nID: '+a.id+'\nStatus: '+(a.status||'unknown')+'\nAsking price: '+(a.asking_price==null?'not set':(a.currency||'ZAR')+' '+a.asking_price),'good');
+    });
+    root.appendChild(card);
+  }
+}
+</script>
+</body>
+</html>
